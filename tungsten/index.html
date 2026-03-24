@@ -32,7 +32,7 @@ footer { text-align:center; color:#444; font-size:0.75rem; margin-top:16px; }
 </head>
 <body>
 <h1>🪨 钨价 × AII.TO</h1>
-<p class="sub">数据来源: Qwen联网搜索（钨价）/ Yahoo Finance（AII.TO）· 更新: 2026-03-24 16:05</p>
+<p class="sub">数据来源: Qwen联网搜索（钨价）/ Yahoo Finance（AII.TO）· 更新: 2026-03-24 16:38</p>
 
 <div class="chart-wrap">
   <div id="chart"></div>
@@ -170,24 +170,17 @@ const firstT = RAW.tungsten[0];
 const tChg = latestT && firstT ? ((latestT.apt_china - firstT.apt_china) / firstT.apt_china * 100).toFixed(1) : '--';
 
 const statsEl = document.getElementById('stats');
-statsEl.innerHTML = `
-  <div class="stat">
-    <div class="label">AII.TO 最新</div>
-    <div class="val neutral">$\${latestALM.toFixed(2)}</div>
-  </div>
-  <div class="stat">
-    <div class="label">AII.TO 日涨跌</div>
-    <div class="val ${almChg>=0?'up':'down'}">${almChg>=0?'+':''}${almChg}%</div>
-  </div>
-  <div class="stat">
-    <div class="label">AII.TO 月涨跌</div>
-    <div class="val ${almChg30>=0?'up':'down'}">${almChg30>=0?'+':''}${almChg30}%</div>
-  </div>
-  <div class="stat">
-    <div class="label">国内APT 区间涨跌</div>
-    <div class="val ${tChg>=0?'up':'down'}">${tChg>=0?'+':''}${tChg}%</div>
-  </div>
-`;
+const almChgClass = almChg >= 0 ? 'up' : 'down';
+const alm30Class = almChg30 >= 0 ? 'up' : 'down';
+const tChgClass = parseFloat(tChg) >= 0 ? 'up' : 'down';
+const almSign = almChg >= 0 ? '+' : '';
+const alm30Sign = almChg30 >= 0 ? '+' : '';
+const tSign = parseFloat(tChg) >= 0 ? '+' : '';
+statsEl.innerHTML =
+  '<div class="stat"><div class="label">AII.TO 最新</div><div class="val neutral">C$' + latestALM.toFixed(2) + '</div></div>' +
+  '<div class="stat"><div class="label">AII.TO 日涨跌</div><div class="val ' + almChgClass + '">' + almSign + almChg + '%</div></div>' +
+  '<div class="stat"><div class="label">AII.TO 月涨跌</div><div class="val ' + alm30Class + '">' + alm30Sign + almChg30 + '%</div></div>' +
+  '<div class="stat"><div class="label">国内APT 区间涨跌</div><div class="val ' + tChgClass + '">' + tSign + tChg + '%</div></div>';
 </script>
 </body>
 </html>
