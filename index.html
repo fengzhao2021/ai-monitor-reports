@@ -3,588 +3,272 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="3600">
 <title>投研操作系统 | INVESTMENT OS</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: #0a0a0a;
-    color: #ffffff;
-    font-family: 'Courier New', Courier, 'Lucida Console', monospace;
-    font-size: 13px;
-    min-height: 100vh;
-  }
-
-  /* ── 顶部状态栏 ── */
-  .statusbar {
-    background: #000;
-    border-bottom: 1px solid #1a1a1a;
-    padding: 6px 16px;
-    display: flex;
-    align-items: center;
-    gap: 0;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .sb-brand {
-    color: #00ff88;
-    font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 2px;
-    padding-right: 20px;
-    border-right: 1px solid #222;
-    margin-right: 20px;
-  }
-  .sb-item { color: #888; margin-right: 24px; }
-  .sb-item span { color: #fff; margin-left: 6px; }
-  .sb-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-             background: #00ff88; margin-right: 6px;
-             box-shadow: 0 0 6px #00ff88; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
-
-  /* ── 主体网格 ── */
-  .dashboard {
-    padding: 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto;
-    gap: 10px;
-  }
-
-  /* ── 卡片 ── */
-  .card {
-    background: #0d0d0d;
-    border: 1px solid #1e1e1e;
-    border-top: 2px solid #00ff8833;
-    padding: 12px 14px;
-    position: relative;
-  }
-  .card:hover { border-color: #00ff8866; }
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #1a1a1a;
-  }
-  .card-title {
-    color: #00ff88;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-  .card-tag {
-    color: #333;
-    font-size: 10px;
-    letter-spacing: 1px;
-  }
-
-  /* ── 宽卡 ── */
-  .card-wide { grid-column: span 2; }
-  .card-full { grid-column: span 3; }
-
-  /* ── 表格 ── */
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 4px 6px; vertical-align: middle; }
-  tr:hover td { background: #111; }
-  tr + tr td { border-top: 1px solid #111; }
-
-  /* ── 信号计数 ── */
-  .sig-counts {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 10px;
-  }
-  .sig-badge {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1;
-  }
-  .sig-label {
-    font-size: 10px;
-    color: #555;
-    margin-top: 2px;
-  }
-
-  /* ── 钨价 ── */
-  .price-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .price-item { background: #0a0a0a; border: 1px solid #1a1a1a; padding: 10px 12px; }
-  .price-label { color: #555; font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
-  .price-value { font-size: 20px; font-weight: 700; font-family: monospace; }
-  .price-change { font-size: 12px; margin-top: 2px; }
-
-  /* ── 投研卡片 ── */
-  .research-cards { display: flex; flex-wrap: wrap; gap: 8px; }
-  .research-card {
-    flex: 0 0 calc(33% - 6px);
-    min-width: 180px;
-    background: #0a0a0a;
-    border: 1px solid #1e1e1e;
-    padding: 10px;
-    cursor: pointer;
-    transition: border-color 0.2s;
-  }
-  .research-card:hover { border-color: #00ff8866; }
-  .rc-header { display: flex; justify-content: space-between; align-items: center; }
-  .rc-title { color: #fff; font-size: 12px; font-weight: 600; }
-  .rc-toggle { color: #00ff88; font-size: 10px; }
-  .rc-preview { color: #555; font-size: 10px; margin-top: 4px; line-height: 1.4; }
-
-  /* ── 两列布局 ── */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-  /* ── 分隔线 ── */
-  .sep { border: none; border-top: 1px solid #1a1a1a; margin: 8px 0; }
-
-  /* ── 轨道标签 ── */
-  .track-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-
-  /* ── 数字大字 ── */
-  .num-green { color: #00ff88; }
-  .num-red   { color: #ff3333; }
-  .num-yellow{ color: #ffaa00; }
-  .dim       { color: #555; }
-
-  /* ── 滚动区 ── */
-  .scroll-area { max-height: 220px; overflow-y: auto; }
-  .scroll-area::-webkit-scrollbar { width: 3px; }
-  .scroll-area::-webkit-scrollbar-track { background: #0a0a0a; }
-  .scroll-area::-webkit-scrollbar-thumb { background: #00ff8844; }
-
-  @media (max-width: 900px) {
-    .dashboard { grid-template-columns: 1fr; }
-    .card-wide, .card-full { grid-column: span 1; }
-    .research-card { flex: 0 0 100%; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#fff;font-family:'Courier New',Courier,'Lucida Console',monospace;font-size:13px;min-height:100vh}
+.statusbar{background:#000;border-bottom:2px solid #00ff8820;padding:7px 16px;display:flex;align-items:center;font-size:12px;letter-spacing:.5px;position:sticky;top:0;z-index:100}
+.sb-brand{color:#00ff88;font-weight:700;font-size:15px;letter-spacing:3px;padding-right:20px;border-right:1px solid #1a1a1a;margin-right:20px}
+.sb-item{color:#555;margin-right:20px}.sb-item span{color:#ccc;margin-left:5px}
+.sb-dot{width:8px;height:8px;border-radius:50%;background:#00ff88;display:inline-block;margin-right:6px;box-shadow:0 0 8px #00ff88;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.dashboard{padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{background:#0d0d0d;border:1px solid #1a1a1a;border-top:2px solid #00ff8820;padding:12px 14px}
+.card:hover{border-color:#00ff8830}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid #141414}
+.card-title{color:#00ff88;font-size:10px;font-weight:700;letter-spacing:2px}
+.card-tag{color:#222;font-size:10px;letter-spacing:1px}
+.card-wide{grid-column:span 2}.card-full{grid-column:span 3}
+table{width:100%;border-collapse:collapse}td{padding:4px 5px;vertical-align:middle}
+tr:hover td{background:#0f0f0f}tr+tr td{border-top:1px solid #0f0f0f}
+.sig-num{font-size:28px;font-weight:700;line-height:1}
+.sig-lbl{font-size:10px;color:#333;margin-top:2px;letter-spacing:1px}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.price-item{background:#0a0a0a;border:1px solid #1a1a1a;padding:8px 10px}
+.price-lbl{color:#333;font-size:10px;letter-spacing:1px;margin-bottom:3px}
+.price-val{font-size:20px;font-weight:700}.price-chg{font-size:11px;margin-top:2px}
+.tabs{display:flex;gap:0;margin-bottom:8px;border-bottom:1px solid #1a1a1a;overflow-x:auto}
+.tab{padding:4px 10px;font-size:10px;color:#333;cursor:pointer;letter-spacing:1px;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab:hover{color:#888}.tab.active{color:#00ff88;border-bottom-color:#00ff88}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.scroll{max-height:210px;overflow-y:auto}
+.scroll::-webkit-scrollbar{width:3px}.scroll::-webkit-scrollbar-thumb{background:#00ff8820}
+.md-body h2{color:#00ff88;font-size:13px;margin:8px 0 4px;letter-spacing:1px}
+.md-body h3{color:#ffaa00;font-size:12px;margin:6px 0 3px}.md-body h4{color:#888;font-size:11px;margin:4px 0 2px}
+.md-body p{color:#777;font-size:11px;line-height:1.5;margin:2px 0}
+.md-body li{color:#777;font-size:11px;line-height:1.6;margin-left:14px;list-style:disc}
+.md-table{width:100%;border-collapse:collapse;margin:4px 0}
+.md-table td{color:#666;font-size:10px;padding:2px 6px;border:1px solid #1a1a1a}
+.md-table tr:first-child td{color:#999;background:#0f0f0f}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-big{background:#0a0a0a;border:1px solid #1a1a1a;padding:10px 12px}
+.stat-num{font-size:32px;font-weight:700;line-height:1;margin-top:4px}
+@media(max-width:900px){.dashboard{grid-template-columns:1fr}.card-wide,.card-full{grid-column:span 1}}
 </style>
 </head>
 <body>
-
-<!-- ── 顶部状态栏 ── -->
 <div class="statusbar">
   <div class="sb-brand">INVEST OS</div>
-  <div class="sb-item">更新时间<span>2026-03-26 11:42 CST</span></div>
-  <div class="sb-item">信号<span class="num-green">72</span></div>
+  <div class="sb-item">更新<span>2026-03-26 12:09 CST</span></div>
+  <div class="sb-item">信号<span style="color:#00ff88">72</span></div>
   <div class="sb-item">IPO追踪<span>11</span></div>
+  <div class="sb-item">研究文件<span>5</span></div>
   <div style="flex:1"></div>
   <div class="sb-item"><span class="sb-dot"></span>SYSTEM ONLINE</div>
 </div>
 
 <div class="dashboard">
 
-  <!-- ═══ P1: 今日信号 ═══ -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">今日信号</span>
-      <span class="card-tag">SIGNALS · 2026-03-26</span>
-    </div>
-    <div class="sig-counts">
-      <div>
-        <div class="sig-badge num-red">32</div>
-        <div class="sig-label">🔴 强信号</div>
-      </div>
-      <div style="border-left:1px solid #1a1a1a;padding-left:16px">
-        <div class="sig-badge num-yellow">40</div>
-        <div class="sig-label">🟡 中信号</div>
-      </div>
-    </div>
-    <hr class="sep">
-    <div class="scroll-area">
-      <table>
-        <tbody>
-        <tr>
-          <td style="color:#888;font-size:11px">2026-03-26 02:08</td>
-          <td><span style="background:#ffaa00;color:#fff;padding:1px 6px;border-radius:2px;font-size:10px;font-weight:700">YELLOW</span></td>
-          <td style="color:#fff">Amazon</td>
-          <td style="color:#aaa;font-size:11px">new_entry</td>
-          <td style="color:#ffaa00;font-size:11px">AMZN.US</td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">2026-03-26 02:08</td>
-          <td><span style="background:#ffaa00;color:#fff;padding:1px 6px;border-radius:2px;font-size:10px;font-weight:700">YELLOW</span></td>
-          <td style="color:#fff">Google</td>
-          <td style="color:#aaa;font-size:11px">new_entry</td>
-          <td style="color:#ffaa00;font-size:11px">GOOGL.US GOOG.US</td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">2026-03-26 02:08</td>
-          <td><span style="background:#ffaa00;color:#fff;padding:1px 6px;border-radius:2px;font-size:10px;font-weight:700">YELLOW</span></td>
-          <td style="color:#fff">阿里巴巴</td>
-          <td style="color:#aaa;font-size:11px">new_entry</td>
-          <td style="color:#ffaa00;font-size:11px">9988.HK BABA.US</td>
-        </tr></tbody>
-      </table>
-    </div>
+<div class="card">
+  <div class="card-header"><span class="card-title">今日信号</span><span class="card-tag">SIGNALS · 2026-03-26</span></div>
+  <div style="display:flex;gap:20px;margin-bottom:10px">
+    <div><div class="sig-num" style="color:#ff3333">32</div><div class="sig-lbl">🔴 强信号</div></div>
+    <div style="border-left:1px solid #1a1a1a;padding-left:20px"><div class="sig-num" style="color:#ffaa00">40</div><div class="sig-lbl">🟡 中信号</div></div>
   </div>
-
-  <!-- ═══ P2: AI 模型榜单 ═══ -->
-  <div class="card card-wide">
-    <div class="card-header">
-      <span class="card-title">AI 模型榜单</span>
-      <span class="card-tag">OPENROUTER · LMARENA</span>
-    </div>
-    <div class="two-col">
-      <div>
-        <div style="color:#555;font-size:10px;letter-spacing:1px;margin-bottom:6px">OPENROUTER 用量 TOP5</div>
-        <table><tbody>
-        <tr>
-          <td style="color:#888;font-size:11px">#1</td>
-          <td style="color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="MiMo-V2-Pro">MiMo-V2-Pro</td>
-          <td>
-            <div style="background:#0a3a0a;height:10px;width:80px;display:inline-block;vertical-align:middle"></div>
-            <span style="color:#00ff88;font-size:11px;margin-left:4px">24.0%</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">#2</td>
-          <td style="color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Step 3.5 Flash (free)">Step 3.5 Flash (free)</td>
-          <td>
-            <div style="background:#0a3a0a;height:10px;width:42px;display:inline-block;vertical-align:middle"></div>
-            <span style="color:#00ff88;font-size:11px;margin-left:4px">12.7%</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">#3</td>
-          <td style="color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="DeepSeek V3.2">DeepSeek V3.2</td>
-          <td>
-            <div style="background:#0a3a0a;height:10px;width:31px;display:inline-block;vertical-align:middle"></div>
-            <span style="color:#00ff88;font-size:11px;margin-left:4px">9.5%</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">#4</td>
-          <td style="color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="MiniMax M2.5">MiniMax M2.5</td>
-          <td>
-            <div style="background:#0a3a0a;height:10px;width:29px;display:inline-block;vertical-align:middle"></div>
-            <span style="color:#00ff88;font-size:11px;margin-left:4px">8.9%</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="color:#888;font-size:11px">#5</td>
-          <td style="color:#fff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="GLM 5 Turbo">GLM 5 Turbo</td>
-          <td>
-            <div style="background:#0a3a0a;height:10px;width:29px;display:inline-block;vertical-align:middle"></div>
-            <span style="color:#00ff88;font-size:11px;margin-left:4px">8.7%</span>
-          </td>
-        </tr></tbody></table>
-      </div>
-      <div>
-        <div style="color:#555;font-size:10px;letter-spacing:1px;margin-bottom:6px">LMARENA 综合排名 TOP5</div>
-        <table>
-          <thead><tr>
-            <td style="color:#333;font-size:10px">排名</td>
-            <td style="color:#333;font-size:10px">模型</td>
-            <td style="color:#333;font-size:10px">ELO</td>
-            <td style="color:#333;font-size:10px">变化</td>
-          </tr></thead>
-          <tbody>
-        <tr>
-          <td style="color:#ffaa00;font-weight:700">#1</td>
-          <td style="color:#fff;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="chatgpt-image-latest-high-fidelity (20251216)">chatgpt-image-latest-hig</td>
-          <td style="color:#00ff88;font-family:monospace">1402</td>
-          <td><span style="color:#888">—</span></td>
-        </tr>
-        <tr>
-          <td style="color:#ffaa00;font-weight:700">#1</td>
-          <td style="color:#fff;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Anthropicclaude-opus-4-6-search">Anthropicclaude-opus-4-6</td>
-          <td style="color:#00ff88;font-family:monospace">1255</td>
-          <td><span style="color:#888">—</span></td>
-        </tr>
-        <tr>
-          <td style="color:#ffaa00;font-weight:700">#1</td>
-          <td style="color:#fff;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="grok-imagine-video-720p">grok-imagine-video-720p</td>
-          <td style="color:#00ff88;font-family:monospace">1404</td>
-          <td><span style="color:#888">—</span></td>
-        </tr>
-        <tr>
-          <td style="color:#ffaa00;font-weight:700">#1</td>
-          <td style="color:#fff;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="grok-imagine-video">grok-imagine-video</td>
-          <td style="color:#00ff88;font-family:monospace">1259</td>
-          <td><span style="color:#888">—</span></td>
-        </tr>
-        <tr>
-          <td style="color:#ffaa00;font-weight:700">#2</td>
-          <td style="color:#fff;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gemini-3-pro-image-preview-2k (nano-banana-pro)">gemini-3-pro-image-previ</td>
-          <td style="color:#00ff88;font-family:monospace">1392</td>
-          <td><span style="color:#888">—</span></td>
-        </tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ P3: 钨价看板 ═══ -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">钨价看板</span>
-      <span class="card-tag">APT PRICES · 2026-03-25</span>
-    </div>
-    <div class="price-grid">
-      <div class="price-item">
-        <div class="price-label">国内 APT</div>
-        <div class="price-value" style="color:#fff">¥145.0万/吨</div>
-        <div class="price-change" style="color:#888888">0.00%</div>
-      </div>
-      <div class="price-item">
-        <div class="price-label">欧洲 APT</div>
-        <div class="price-value" style="color:#fff">$2250/mtu</div>
-        <div class="price-change" style="color:#ff3333">-15.09%</div>
-      </div>
-    </div>
-    <div style="color:#333;font-size:10px;border-top:1px solid #1a1a1a;padding-top:6px;margin-top:4px">
-      参考价差：<span style="color:#888">CN¥3625/mtu vs EU$2250/mtu</span>
-    </div>
-  </div>
-
-  <!-- ═══ P4: IPO 雷达 ═══ -->
-  <div class="card card-wide">
-    <div class="card-header">
-      <span class="card-title">IPO 雷达</span>
-      <span class="card-tag">WATCHLIST · 11 COMPANIES</span>
-    </div>
-    <div class="scroll-area">
-      <table>
-        <thead><tr>
-          <td style="color:#333;font-size:10px">公司</td>
-          <td style="color:#333;font-size:10px">估值</td>
-          <td style="color:#333;font-size:10px">状态</td>
-          <td style="color:#333;font-size:10px">动态</td>
-          <td style="color:#333;font-size:10px">更新</td>
-        </tr></thead>
-        <tbody>
-        <tr>
-          <td style="color:#fff;font-weight:600">SpaceX</td>
-          <td style="color:#00ff88;font-family:monospace">$350.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">OpenAI</td>
-          <td style="color:#00ff88;font-family:monospace">$157.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Stripe</td>
-          <td style="color:#00ff88;font-family:monospace">$65.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Databricks</td>
-          <td style="color:#00ff88;font-family:monospace">$62.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Anthropic</td>
-          <td style="color:#00ff88;font-family:monospace">$61.5B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Waymo</td>
-          <td style="color:#00ff88;font-family:monospace">$45.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Scale AI</td>
-          <td style="color:#00ff88;font-family:monospace">$13.8B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Perplexity AI</td>
-          <td style="color:#00ff88;font-family:monospace">$9.0B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Mistral AI</td>
-          <td style="color:#00ff88;font-family:monospace">$6.2B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Cohere</td>
-          <td style="color:#00ff88;font-family:monospace">$5.5B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr>
-        <tr>
-          <td style="color:#fff;font-weight:600">Together AI</td>
-          <td style="color:#00ff88;font-family:monospace">$3.3B</td>
-          <td><span style="background:#333366;color:#8888ff;padding:2px 7px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td>
-          <td style="color:#888;font-size:11px">—</td>
-          <td style="color:#555;font-size:10px">2026-03-26</td>
-        </tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ═══ P5: 投研数据库 ═══ -->
-  <div class="card card-full">
-    <div class="card-header">
-      <span class="card-title">投研数据库</span>
-      <span class="card-tag">RESEARCH DB · 0 FILES</span>
-    </div>
-    <div class="track-tags"><span style="background:#0a1a2a;border:1px solid #00ff8844;color:#00ff88;padding:3px 10px;border-radius:2px;font-size:11px;cursor:pointer;margin:2px">AI搜索</span><span style="background:#0a1a2a;border:1px solid #00ff8844;color:#00ff88;padding:3px 10px;border-radius:2px;font-size:11px;cursor:pointer;margin:2px">钨金属</span><span style="background:#0a1a2a;border:1px solid #00ff8844;color:#00ff88;padding:3px 10px;border-radius:2px;font-size:11px;cursor:pointer;margin:2px">AI基础设施</span><span style="background:#0a1a2a;border:1px solid #00ff8844;color:#00ff88;padding:3px 10px;border-radius:2px;font-size:11px;cursor:pointer;margin:2px">大模型竞争</span><span style="background:#0a1a2a;border:1px solid #00ff8844;color:#00ff88;padding:3px 10px;border-radius:2px;font-size:11px;cursor:pointer;margin:2px">IPO追踪</span></div>
-    <div class="research-cards">
-        <div style="color:#444;text-align:center;padding:20px;font-size:12px">
-          research/ 目录暂无文件 — 添加 .md 文件后自动显示
-        </div></div>
-  </div>
-
-  <!-- ═══ P6: 系统状态 ═══ -->
-  <div class="card card-full">
-    <div class="card-header">
-      <span class="card-title">系统状态</span>
-      <span class="card-tag">SYSTEM STATUS · 近7日</span>
-    </div>
-    <div class="two-col">
-      <div>
-        <div style="color:#555;font-size:10px;letter-spacing:1px;margin-bottom:6px">爬虫模块状态</div>
-        <div class="scroll-area" style="max-height:160px">
-          <table>
-            <thead><tr>
-              <td style="color:#333;font-size:10px">模块</td>
-              <td style="color:#333;font-size:10px">最后运行</td>
-              <td style="color:#333;font-size:10px">状态</td>
-              <td style="color:#333;font-size:10px">数据量</td>
-            </tr></thead>
-            <tbody>
-        <tr>
-          <td style="color:#aaa;font-size:11px">openrouter</td>
-          <td style="color:#555;font-size:10px">2026-03-26 02:00</td>
-          <td style="color:#00ff88;font-size:11px">● 64次成功</td>
-          <td style="color:#888;font-size:11px">640 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">bigcodebench</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:07</td>
-          <td style="color:#00ff88;font-size:11px">● 1次成功</td>
-          <td style="color:#888;font-size:11px">86 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">open_vlm</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:07</td>
-          <td style="color:#00ff88;font-size:11px">● 1次成功</td>
-          <td style="color:#888;font-size:11px">17 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">livecodebench</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:07</td>
-          <td style="color:#00ff88;font-size:11px">● 1次成功</td>
-          <td style="color:#888;font-size:11px">28 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">vbench</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:06</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">0 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">aider</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:06</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">483 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">swebench</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">0 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">lm_council</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">630 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">epoch_ai</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">6,867 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">livebench</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">452 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">huggingface</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">700 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">arena</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:05</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">5,024 条</td>
-        </tr>
-        <tr>
-          <td style="color:#aaa;font-size:11px">artificial_analysis</td>
-          <td style="color:#555;font-size:10px">2026-03-25 18:03</td>
-          <td style="color:#00ff88;font-size:11px">● 7次成功</td>
-          <td style="color:#888;font-size:11px">1,559 条</td>
-        </tr></tbody>
-          </table>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="price-item">
-          <div class="price-label">今日信号</div>
-          <div class="price-value num-green" style="font-size:28px">1246</div>
-        </div>
-        <div class="price-item">
-          <div class="price-label">OpenRouter 今日记录</div>
-          <div class="price-value" style="font-size:28px;color:#ffaa00">22</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /dashboard -->
-
-<div style="text-align:center;padding:10px;color:#222;font-size:10px;letter-spacing:2px">
-  INVEST OS · AUTO-GENERATED · 2026-03-26 11:42 CST · fengzhao2021/ai-monitor-reports
+  <div style="color:#222;font-size:10px;margin-bottom:6px">share_change=市占率变化 · new_entry=新上榜 · specialty_top=专项第一</div>
+  <div class="scroll"><table><tbody><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">Amazon</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">AMZN.US</td></tr><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">Google</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">GOOGL.US GOOG.US</td></tr><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">阿里巴巴</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">9988.HK BABA.US</td></tr><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">阿里巴巴</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">9988.HK BABA.US</td></tr><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">阿里巴巴</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">9988.HK BABA.US</td></tr><tr><td style="color:#444;font-size:10px;white-space:nowrap">2026-03-26 02:08</td><td><span style="background:#2a1800;color:#ffaa00;border:1px solid #ffaa0044;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:700">中信号</span></td><td style="color:#eee">阿里巴巴</td><td style="color:#666;font-size:10px">新上榜</td><td style="color:#ffaa00;font-size:10px">9988.HK BABA.US</td></tr></tbody></table></div>
 </div>
 
+<div class="card card-wide">
+  <div class="card-header"><span class="card-title">AI 模型榜单</span><span class="card-tag">5 PLATFORMS</span></div>
+  <div style="display:grid;grid-template-columns:210px 1fr;gap:14px">
+    <div>
+      <div style="color:#2a2a2a;font-size:10px;letter-spacing:1px;margin-bottom:6px">OPENROUTER 用量 TOP5</div>
+      <table><tbody><tr><td style="color:#444;font-size:10px">#1</td><td style="color:#eee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="MiMo-V2-Pro">MiMo-V2-Pro</td><td><div style="background:#003300;height:8px;width:70px;display:inline-block;vertical-align:middle;margin-right:4px"></div><span style="color:#00ff88;font-size:11px">24.0%</span></td></tr><tr><td style="color:#444;font-size:10px">#2</td><td style="color:#eee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Step 3.5 Flash (free)">Step 3.5 Flash (fre</td><td><div style="background:#003300;height:8px;width:37px;display:inline-block;vertical-align:middle;margin-right:4px"></div><span style="color:#00ff88;font-size:11px">12.7%</span></td></tr><tr><td style="color:#444;font-size:10px">#3</td><td style="color:#eee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="DeepSeek V3.2">DeepSeek V3.2</td><td><div style="background:#003300;height:8px;width:27px;display:inline-block;vertical-align:middle;margin-right:4px"></div><span style="color:#00ff88;font-size:11px">9.5%</span></td></tr><tr><td style="color:#444;font-size:10px">#4</td><td style="color:#eee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="MiniMax M2.5">MiniMax M2.5</td><td><div style="background:#003300;height:8px;width:25px;display:inline-block;vertical-align:middle;margin-right:4px"></div><span style="color:#00ff88;font-size:11px">8.9%</span></td></tr><tr><td style="color:#444;font-size:10px">#5</td><td style="color:#eee;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="GLM 5 Turbo">GLM 5 Turbo</td><td><div style="background:#003300;height:8px;width:25px;display:inline-block;vertical-align:middle;margin-right:4px"></div><span style="color:#00ff88;font-size:11px">8.7%</span></td></tr></tbody></table>
+    </div>
+    <div>
+      <div class="tabs" id="bench-tabs">
+        <div class="tab active" onclick="switchTab(event,'bench','aa')">Artificial Analysis</div>
+        <div class="tab" onclick="switchTab(event,'bench','live')">LiveBench</div>
+        <div class="tab" onclick="switchTab(event,'bench','code')">LiveCode</div>
+        <div class="tab" onclick="switchTab(event,'bench','swe')">SWE/Aider</div>
+        <div class="tab" onclick="switchTab(event,'bench','arena')">Arena ELO</div>
+      </div>
+      <div id="bench-aa" class="tab-pane active">
+        <div style="color:#222;font-size:10px;margin-bottom:4px">Artificial Analysis Intelligence Index</div>
+        <table><thead><tr><td style="color:#222;font-size:10px" colspan="4">排名 / 模型 / 得分 / 变化</td></tr></thead><tbody><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Gemini 3.1 Pro Preview">Gemini 3.1 Pro Preview</td><td style="color:#00ff88;font-family:monospace;font-size:11px">57.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#2</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="GPT-5.4 (xhigh)">GPT-5.4 (xhigh)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">57.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#3</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="GPT-5.3 Codex (xhigh)">GPT-5.3 Codex (xhigh)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">54.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#4</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Claude Opus 4.6 (max)">Claude Opus 4.6 (max)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">53.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#5</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Claude Sonnet 4.6 (max)">Claude Sonnet 4.6 (max)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">52.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr></tbody></table>
+      </div>
+      <div id="bench-live" class="tab-pane">
+        <div style="color:#222;font-size:10px;margin-bottom:4px">LiveBench 综合得分</div>
+        <table><tbody><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="GPT-5.4 Thinking xHigh Effort">GPT-5.4 Thinking xHigh Eff</td><td style="color:#00ff88;font-family:monospace;font-size:11px">80.3</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#2</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Gemini 3.1 Pro Preview High**5th rank in unseen questions across all categories">Gemini 3.1 Pro Preview Hig</td><td style="color:#00ff88;font-family:monospace;font-size:11px">79.9</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#3</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Claude 4.6 Opus Thinking High Effort">Claude 4.6 Opus Thinking H</td><td style="color:#00ff88;font-family:monospace;font-size:11px">76.3</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#4</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Claude 4.5 Opus Thinking High Effort">Claude 4.5 Opus Thinking H</td><td style="color:#00ff88;font-family:monospace;font-size:11px">76.0</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#5</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Claude 4.6 Sonnet Thinking Medium Effort">Claude 4.6 Sonnet Thinking</td><td style="color:#00ff88;font-family:monospace;font-size:11px">75.5</td><td style="width:30px"><span style="color:#333">—</span></td></tr></tbody></table>
+      </div>
+      <div id="bench-code" class="tab-pane">
+        <div style="color:#222;font-size:10px;margin-bottom:4px">LiveCodeBench 代码能力 Pass@1</div>
+        <table><tbody><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="O4-Mini (High)">O4-Mini (High)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">80.2%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#2</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="O3 (High)">O3 (High)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">75.8%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#3</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="O4-Mini (Medium)">O4-Mini (Medium)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">74.2%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#4</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Gemini-2.5-Pro-06-05">Gemini-2.5-Pro-06-05</td><td style="color:#00ff88;font-family:monospace;font-size:11px">73.6%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#5</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="DeepSeek-R1-0528">DeepSeek-R1-0528</td><td style="color:#00ff88;font-family:monospace;font-size:11px">73.1%</td><td style="width:30px"><span style="color:#333">—</span></td></tr></tbody></table>
+      </div>
+      <div id="bench-swe" class="tab-pane">
+        <div style="color:#222;font-size:10px;margin-bottom:4px">Aider SWE-bench Verified 解决率</div>
+        <table><tbody><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gpt-5 (high)">gpt-5 (high)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">88.0%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#2</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gpt-5 (medium)">gpt-5 (medium)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">86.7%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#3</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="o3-pro (high)">o3-pro (high)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">84.9%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#4</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gemini-2.5-pro-preview-06-05 (32k think)">gemini-2.5-pro-preview-06-</td><td style="color:#00ff88;font-family:monospace;font-size:11px">83.1%</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#5</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gpt-5 (low)">gpt-5 (low)</td><td style="color:#00ff88;font-family:monospace;font-size:11px">81.3%</td><td style="width:30px"><span style="color:#333">—</span></td></tr></tbody></table>
+      </div>
+      <div id="bench-arena" class="tab-pane">
+        <div style="color:#222;font-size:10px;margin-bottom:4px">LM Arena ELO 竞技场排名</div>
+        <table><tbody><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="chatgpt-image-latest-high-fidelity (20251216)">chatgpt-image-latest-high-</td><td style="color:#00ff88;font-family:monospace;font-size:11px">1,402</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Anthropicclaude-opus-4-6-search">Anthropicclaude-opus-4-6-s</td><td style="color:#00ff88;font-family:monospace;font-size:11px">1,255</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="grok-imagine-video-720p">grok-imagine-video-720p</td><td style="color:#00ff88;font-family:monospace;font-size:11px">1,404</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#1</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="grok-imagine-video">grok-imagine-video</td><td style="color:#00ff88;font-family:monospace;font-size:11px">1,259</td><td style="width:30px"><span style="color:#333">—</span></td></tr><tr><td style="color:#ffaa00;font-weight:700;width:28px">#2</td><td style="color:#eee;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="gemini-3-pro-image-preview-2k (nano-banana-pro)">gemini-3-pro-image-preview</td><td style="color:#00ff88;font-family:monospace;font-size:11px">1,392</td><td style="width:30px"><span style="color:#333">—</span></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">钨价看板</span><span class="card-tag">APT · 2026-03-25</span></div>
+  <div class="price-grid">
+    <div class="price-item">
+      <div class="price-lbl">国内 APT</div>
+      <div class="price-val" style="color:#fff">¥145.0万/吨</div>
+      <div class="price-chg" style="color:#666">0.00%</div>
+    </div>
+    <div class="price-item">
+      <div class="price-lbl">欧洲 APT</div>
+      <div class="price-val" style="color:#fff">$2250/mtu</div>
+      <div class="price-chg" style="color:#ff3333">-15.09%</div>
+    </div>
+  </div>
+  
+  <div style="margin-top:10px">
+    <div style="color:#222;font-size:10px;letter-spacing:1px;margin-bottom:5px">最新政策动态</div>
+    <div style="border-left:2px solid #333;padding:4px 8px;margin-bottom:5px;background:#0a0a0a"><div style="color:#bbb;font-size:11px">金属钨制品</div><div style="color:#444;font-size:10px;margin-top:1px">ctia&nbsp;·&nbsp;2026-03-23</div></div><div style="border-left:2px solid #333;padding:4px 8px;margin-bottom:5px;background:#0a0a0a"><div style="color:#bbb;font-size:11px">钨棒、钨条</div><div style="color:#444;font-size:10px;margin-top:1px">ctia&nbsp;·&nbsp;2026-03-23</div></div><div style="border-left:2px solid #333;padding:4px 8px;margin-bottom:5px;background:#0a0a0a"><div style="color:#bbb;font-size:11px">高比重钨合金</div><div style="color:#444;font-size:10px;margin-top:1px">ctia&nbsp;·&nbsp;2026-03-23</div></div>
+  </div>
+</div>
+
+<div class="card card-wide">
+  <div class="card-header"><span class="card-title">IPO 雷达</span><span class="card-tag">WATCHLIST · 11 COMPANIES</span></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><td style="color:#222;font-size:10px">公司</td><td style="color:#222;font-size:10px">估值</td><td style="color:#222;font-size:10px">状态</td><td style="color:#222;font-size:10px">动态</td><td style="color:#222;font-size:10px">更新</td></tr></thead>
+      <tbody><tr><td style="color:#eee;font-weight:600">SpaceX</td><td style="color:#00ff88;font-family:monospace">$350.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">OpenAI</td><td style="color:#00ff88;font-family:monospace">$157.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Stripe</td><td style="color:#00ff88;font-family:monospace">$65.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Databricks</td><td style="color:#00ff88;font-family:monospace">$62.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Anthropic</td><td style="color:#00ff88;font-family:monospace">$61.5B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Waymo</td><td style="color:#00ff88;font-family:monospace">$45.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Scale AI</td><td style="color:#00ff88;font-family:monospace">$13.8B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Perplexity AI</td><td style="color:#00ff88;font-family:monospace">$9.0B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Mistral AI</td><td style="color:#00ff88;font-family:monospace">$6.2B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Cohere</td><td style="color:#00ff88;font-family:monospace">$5.5B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr><tr><td style="color:#eee;font-weight:600">Together AI</td><td style="color:#00ff88;font-family:monospace">$3.3B</td><td><span style="background:#0a1828;color:#4488ff;border:1px solid #4488ff44;padding:2px 6px;border-radius:2px;font-size:10px;letter-spacing:1px">WATCH</span></td><td style="color:#555;font-size:10px">—</td><td style="color:#2a2a2a;font-size:10px">2026-03-26</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-full">
+  <div class="card-header"><span class="card-title">投研数据库</span><span class="card-tag">RESEARCH DB · 5 FILES</span></div>
+  <div style="color:#333;font-size:10px;letter-spacing:2px;margin:10px 0 5px">COMPANIES</div><div style="display:flex;flex-wrap:wrap;gap:8px"><div style="flex:0 0 calc(33% - 6px);min-width:220px;background:#0a0a0a;border:1px solid #1a1a1a;padding:10px;cursor:pointer" onclick="toggleRC('rc0_0')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#eee;font-size:12px;font-weight:600">Almonty Industries (AII.TO)</span><span id="arr_rc0_0" style="color:#00ff88;font-size:10px">▶</span></div><div style="color:#333;font-size:10px;margin-top:4px;line-height:1.4">- 交易所：多伦多交易所 TSX: AII - 业务：钨矿开采，北美唯一在产钨矿商 - 核心资产：韩国 Sangdong 钨矿（储量全球前5） 1. **地缘稀缺**：西方钨供应 85% 依赖中国，S</div><div id="rc0_0" style="display:none;margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;max-height:350px;overflow-y:auto" class="md-body"><h2>Almonty Industries (AII.TO)</h2>
+<br>
+<h3>公司概况</h3>
+<li>交易所：多伦多交易所 TSX: AII</li>
+<li>业务：钨矿开采，北美唯一在产钨矿商</li>
+<li>核心资产：韩国 Sangdong 钨矿（储量全球前5）</li>
+<br>
+<h3>核心逻辑</h3>
+<li>**地缘稀缺**：西方钨供应 85% 依赖中国，Sangdong 是近20年最大西方新建钨矿</li>
+<li>**政策顺风**：美欧关键矿产供应链去中国化</li>
+<li>**需求端**：硬质合金工具、军工、AI散热</li>
+<br>
+<h3>关键风险</h3>
+<li>矿山建设延期 / 融资压力</li>
+<li>钨价下行风险</li>
+<br>
+<h3>监控指标</h3>
+<li>AII.TO 每周价格变化</li>
+<li>中国钨出口数据月报</li>
+<li>Sangdong 建设进度公告</li>
+<br></div></div></div><div style="color:#333;font-size:10px;letter-spacing:2px;margin:10px 0 5px">SECTORS</div><div style="display:flex;flex-wrap:wrap;gap:8px"><div style="flex:0 0 calc(33% - 6px);min-width:220px;background:#0a0a0a;border:1px solid #1a1a1a;padding:10px;cursor:pointer" onclick="toggleRC('rc1_0')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#eee;font-size:12px;font-weight:600">AI 搜索赛道研究</span><span id="arr_rc1_0" style="color:#00ff88;font-size:10px">▶</span></div><div style="color:#333;font-size:10px;margin-top:4px;line-height:1.4"></div><div id="rc1_0" style="display:none;margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;max-height:350px;overflow-y:auto" class="md-body"><h2>AI 搜索赛道研究</h2>
+<br>
+<h3>核心玩家</h3>
+<table class="md-table">
+<tr><td>公司</td><td>产品</td><td>估值</td><td>特点</td></tr>
+<tr><td>Perplexity AI</td><td>Perplexity</td><td>$9B</td><td>答案引擎，引用溯源</td></tr>
+<tr><td>OpenAI</td><td>ChatGPT Search</td><td>-</td><td>依托GPT生态</td></tr>
+<tr><td>Google</td><td>AI Overviews</td><td>上市</td><td>防御型布局</td></tr>
+</table>
+<br>
+<h3>投资逻辑</h3>
+<li>搜索广告市场 $2000亿+，AI替代率持续提升</li>
+<li>用户习惯迁移：对话式 > 链接列表</li>
+<li>关注：DAU增长、广告变现、企业API收入</li>
+<br>
+<h3>关联标的</h3>
+<li>Perplexity AI（未上市，$9B）</li>
+<li>Google GOOGL.US / Microsoft MSFT.US</li>
+<br></div></div><div style="flex:0 0 calc(33% - 6px);min-width:220px;background:#0a0a0a;border:1px solid #1a1a1a;padding:10px;cursor:pointer" onclick="toggleRC('rc1_1')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#eee;font-size:12px;font-weight:600">钨金属赛道研究</span><span id="arr_rc1_1" style="color:#00ff88;font-size:10px">▶</span></div><div style="color:#333;font-size:10px;margin-top:4px;line-height:1.4"></div><div id="rc1_1" style="display:none;margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;max-height:350px;overflow-y:auto" class="md-body"><h2>钨金属赛道研究</h2>
+<br>
+<h3>价格体系</h3>
+<table class="md-table">
+<tr><td>品种</td><td>单位</td><td>当前价位</td></tr>
+<tr><td>国内APT</td><td>万元/吨</td><td>~145万</td></tr>
+<tr><td>欧洲APT</td><td>USD/mtu</td><td>2250-2650</td></tr>
+<tr><td>钨粉</td><td>万元/吨</td><td>20-22万</td></tr>
+</table>
+<br>
+<h3>投资逻辑</h3>
+<li>中国出口配额管制，供给端天然约束</li>
+<li>AI数据中心散热、硬质合金刀具需求增长</li>
+<li>军工需求：穿甲弹、钨合金防护</li>
+<br>
+<h3>核心标的</h3>
+<li>ALM (AII.TO) — 北美唯一钨矿开发商</li>
+<li>厦门钨业 600549.SH</li>
+<li>章源钨业 002378.SZ</li>
+<br></div></div></div><div style="color:#333;font-size:10px;letter-spacing:2px;margin:10px 0 5px">SIGNALS</div><div style="display:flex;flex-wrap:wrap;gap:8px"><div style="flex:0 0 calc(33% - 6px);min-width:220px;background:#0a0a0a;border:1px solid #1a1a1a;padding:10px;cursor:pointer" onclick="toggleRC('rc2_0')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#eee;font-size:12px;font-weight:600">2026 年投资信号日志</span><span id="arr_rc2_0" style="color:#00ff88;font-size:10px">▶</span></div><div style="color:#333;font-size:10px;margin-top:4px;line-height:1.4">- MiMo-V2-Pro 占据 OpenRouter 用量第一（23.97%） - GPT-5 系列在 Aider SWE-bench 领先（88%） - Google Gemini 3.1 Pro</div><div id="rc2_0" style="display:none;margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;max-height:350px;overflow-y:auto" class="md-body"><h2>2026 年投资信号日志</h2>
+<br>
+<h3>Q1 2026 AI模型市场</h3>
+<li>MiMo-V2-Pro 占据 OpenRouter 用量第一（23.97%）</li>
+<li>GPT-5 系列在 Aider SWE-bench 领先（88%）</li>
+<li>Google Gemini 3.1 Pro Preview 在 Artificial Analysis 榜首</li>
+<li>OpenAI、Google、阿里巴巴是最活跃新模型发布方</li>
+<br>
+<h3>Q1 2026 钨价</h3>
+<li>国内 APT 稳定在 ¥145万/吨</li>
+<li>欧洲 APT 波动（$2250-2650/mtu）</li>
+<br>
+<h3>待跟踪</h3>
+<li>OpenAI IPO 进展</li>
+<li>Anthropic 新一轮融资</li>
+<li>ALM Sangdong 矿山商业化节点</li>
+<li>中国钨出口配额政策</li>
+<br></div></div></div><div style="color:#333;font-size:10px;letter-spacing:2px;margin:10px 0 5px">THEMES</div><div style="display:flex;flex-wrap:wrap;gap:8px"><div style="flex:0 0 calc(33% - 6px);min-width:220px;background:#0a0a0a;border:1px solid #1a1a1a;padding:10px;cursor:pointer" onclick="toggleRC('rc3_0')"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:#eee;font-size:12px;font-weight:600">VCX型基金 — 获取未上市AI资产敞口</span><span id="arr_rc3_0" style="color:#00ff88;font-size:10px">▶</span></div><div style="color:#333;font-size:10px;margin-top:4px;line-height:1.4">AI独角兽（Anthropic $61.5B、OpenAI $157B、SpaceX $350B）暂未上市， VCX型基金提供公开市场间接投资渠道。</div><div id="rc3_0" style="display:none;margin-top:8px;border-top:1px solid #1a1a1a;padding-top:8px;max-height:350px;overflow-y:auto" class="md-body"><h2>VCX型基金 — 获取未上市AI资产敞口</h2>
+<br>
+<h3>核心逻辑</h3>
+<p>AI独角兽（Anthropic $61.5B、OpenAI $157B、SpaceX $350B）暂未上市，</p>
+<p>VCX型基金提供公开市场间接投资渠道。</p>
+<br>
+<h3>代表标的</h3>
+<table class="md-table">
+<tr><td>工具</td><td>持仓</td><td>风险点</td></tr>
+<tr><td>Destiny Tech100 (DXYZ)</td><td>Anthropic/SpaceX/OpenAI</td><td>溢价剧烈波动</td></tr>
+<tr><td>SoftBank 9984.T</td><td>Arm/ByteDance等</td><td>折价</td></tr>
+</table>
+<br>
+<h3>IPO 追踪清单</h3>
+<table class="md-table">
+<tr><td>公司</td><td>估值</td><td>IPO预期</td></tr>
+<tr><td>OpenAI</td><td>$157B</td><td>2026?</td></tr>
+<tr><td>Anthropic</td><td>$61.5B</td><td>未定</td></tr>
+<tr><td>Stripe</td><td>$65B</td><td>2025-26?</td></tr>
+<tr><td>Databricks</td><td>$62B</td><td>2026?</td></tr>
+<tr><td>SpaceX</td><td>$350B</td><td>未定</td></tr>
+</table>
+<br></div></div></div>
+</div>
+
+<div class="card card-full">
+  <div class="card-header"><span class="card-title">系统状态</span><span class="card-tag">SYSTEM STATUS · 近3日</span></div>
+  <div class="two-col">
+    <div>
+      <div style="color:#222;font-size:10px;letter-spacing:1px;margin-bottom:6px">爬虫模块</div>
+      <table><thead><tr><td style="color:#222;font-size:10px">模块</td><td style="color:#222;font-size:10px">最后运行</td><td style="color:#222;font-size:10px">状态</td><td style="color:#222;font-size:10px">数据量</td></tr></thead><tbody><tr><td style="color:#aaa;font-size:11px">openrouter</td><td style="color:#333;font-size:10px">2026-03-26 04:00</td><td><span style="color:#ffaa00">●</span> <span style="color:#555;font-size:10px">29✓ 1✗</span></td><td style="color:#444;font-size:10px">290条</td></tr><tr><td style="color:#aaa;font-size:11px">bigcodebench</td><td style="color:#333;font-size:10px">2026-03-25 18:07</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">1✓ 0✗</span></td><td style="color:#444;font-size:10px">86条</td></tr><tr><td style="color:#aaa;font-size:11px">open_vlm</td><td style="color:#333;font-size:10px">2026-03-25 18:07</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">1✓ 0✗</span></td><td style="color:#444;font-size:10px">17条</td></tr><tr><td style="color:#aaa;font-size:11px">livecodebench</td><td style="color:#333;font-size:10px">2026-03-25 18:07</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">1✓ 0✗</span></td><td style="color:#444;font-size:10px">28条</td></tr><tr><td style="color:#aaa;font-size:11px">vbench</td><td style="color:#333;font-size:10px">2026-03-25 18:06</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">0条</td></tr><tr><td style="color:#aaa;font-size:11px">aider</td><td style="color:#333;font-size:10px">2026-03-25 18:06</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">207条</td></tr><tr><td style="color:#aaa;font-size:11px">swebench</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">0条</td></tr><tr><td style="color:#aaa;font-size:11px">lm_council</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">270条</td></tr><tr><td style="color:#aaa;font-size:11px">epoch_ai</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">2,943条</td></tr><tr><td style="color:#aaa;font-size:11px">livebench</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">198条</td></tr><tr><td style="color:#aaa;font-size:11px">huggingface</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">300条</td></tr><tr><td style="color:#aaa;font-size:11px">arena</td><td style="color:#333;font-size:10px">2026-03-25 18:05</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">2,154条</td></tr><tr><td style="color:#aaa;font-size:11px">artificial_analysis</td><td style="color:#333;font-size:10px">2026-03-25 18:03</td><td><span style="color:#00ff88">●</span> <span style="color:#555;font-size:10px">3✓ 0✗</span></td><td style="color:#444;font-size:10px">775条</td></tr></tbody></table>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="stat-big" style="flex:1"><div style="color:#333;font-size:10px;letter-spacing:1px">今日信号</div><div class="stat-num" style="color:#00ff88">1246</div></div>
+      <div class="stat-big" style="flex:1"><div style="color:#333;font-size:10px;letter-spacing:1px">OpenRouter记录</div><div class="stat-num" style="color:#ffaa00">22</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div style="text-align:center;padding:8px;color:#1a1a1a;font-size:10px;letter-spacing:2px">INVEST OS v2 · 2026-03-26 12:09 CST · fengzhao2021/ai-monitor-reports</div>
+
 <script>
-function toggleResearch(id) {
-  var el = document.getElementById('content_' + id);
-  var tg = document.getElementById('toggle_' + id);
-  if (el.style.display === 'none') {
-    el.style.display = 'block';
-    tg.textContent = '▼ 收起';
-  } else {
-    el.style.display = 'none';
-    tg.textContent = '▶ 展开';
-  }
+function switchTab(e,group,id){
+  document.querySelectorAll('#'+group+'-tabs .tab').forEach(function(t){t.classList.remove('active')});
+  e.target.classList.add('active');
+  document.querySelectorAll('[id^="'+group+'-"]').forEach(function(p){p.classList.remove('active')});
+  document.getElementById(group+'-'+id).classList.add('active');
+}
+function toggleRC(id){
+  var el=document.getElementById(id),arr=document.getElementById('arr_'+id);
+  if(el.style.display==='none'){el.style.display='block';arr.textContent='▼'}
+  else{el.style.display='none';arr.textContent='▶'}
 }
 </script>
 </body>
